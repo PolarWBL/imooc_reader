@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/tx https://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd
+        http://www.springframework.org/schema/task https://www.springframework.org/schema/task/spring-task.xsd
+        http://www.springframework.org/schema/aop https://www.springframework.org/schema/aop/spring-aop.xsd">
+
+<!--    3. 开启SpringMVC注解开发模式
+        请注意, 这个配置是开启spring的注解模式, 并非springMVC       -->
+    <context:component-scan base-package="com.ctgu"/>
+    <!--springMVC注解模式-->
+    <mvc:annotation-driven>
+        <!--4. 解决响应的中文乱码问题-->
+        <mvc:message-converters>
+            <bean class="org.springframework.http.converter.StringHttpMessageConverter">
+                <property name="supportedMediaTypes">
+                    <list>
+                        <value>text/html;charset=utf-8</value>
+                        <!--配置json字符串响应的字符串编码格式-->
+                        <value>application/json;charset=utf-8</value>
+                    </list>
+                </property>
+            </bean>
+        </mvc:message-converters>
+    </mvc:annotation-driven>
+    <!--过滤静态资源-->
+    <mvc:default-servlet-handler/>
+
+
+<!--    5. 配置freemarker模板引擎配置文件-->
+    <!--    需要给 FreeMarkerViewResolver 设置一个 FreeMarkerConfig 的 bean 对象来定义 FreeMarker 的配置信息-->
+    <bean class="org.springframework.web.servlet.view.freemarker.FreeMarkerConfigurer">
+        <property name="templateLoaderPath" value="/WEB-INF/ftl"/>
+        <property name="freemarkerSettings">
+            <props>
+                <!--设置响应到ftl文件中的字符的编码格式为utf-8-->
+                <prop key="defaultEncoding">UTF-8</prop>
+            </props>
+        </property>
+    </bean>
+    <!--   创建视图解析器 -->
+    <bean class="org.springframework.web.servlet.view.freemarker.FreeMarkerViewResolver">
+        <!--使用fmt模板引擎产生的新的html页面的响应输出的类型为utf-8-->
+        <property name="contentType" value="text/html;charset=utf-8"/>
+        <property name="suffix" value=".ftl"/>
+    </bean>
+
+<!--    mybatis和spring整合的配置-->
+    <!--   2.  配置数据源 创建连接池-->
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+        <property name="url" value="jdbc:mysql://localhost:3306/imooc_reader?useSSL=false&amp;useUnicode=true&amp;characterEncoding=UTF-8&amp;serverTimezone=Asia/Shanghai&amp;allowPublicKeyRetrieval=true"/>
+        <property name="username" value="root"/>
+        <property name="password" value="123456"/>
+        <property name="initialSize" value="5"/>
+        <property name="maxActive" value="20"/>
+    </bean>
+    <!-- 3. 通过IOC容器自动实例化sqlSessionFactory(mybatis的初始化组件)-->
+<!--这是原生mybatis的bean-->
+<!--    <bean id="sessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">-->
+<!--这是mybatis-plus的sessionFactory的bean-->
+    <bean id="sessionFactory" class="com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="mapperLocations" value="classpath:mappers/*.xml"/>
+        <!--5. mybatis的配置文件的地址-->
+        <property name="configLocation" value="classpath:mybatis-config.xml"/>
+    </bean>
+    <!-- 4. 配置mapper扫描器-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.ctgu.reader.mapper"/>
+    </bean>
+
+
+<!--    声明式事务配置-->
+    <!--创建事务管理器-->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+    <!--启用注解形式的事务控制-->
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+
+<!--    java图像验证码 kaptcha 组件-->
+    <bean id="kaptchaProducer" class="com.google.code.kaptcha.impl.DefaultKaptcha">
+        <property name="config">
+            <bean class="com.google.code.kaptcha.util.Config">
+                <constructor-arg>
+                    <props>
+<!--                        图形的边框-->
+                        <prop key="kaptcha.border">no</prop>
+<!--                        图形的宽度-->
+                        <prop key="kaptcha.image.width">120</prop>
+<!--                        字符串的最大大小-->
+                        <prop key="kaptcha.textproducer.font.size">40</prop>
+<!--                        字符串的颜色-->
+                        <prop key="kaptcha.textproducer.font.color">blue</prop>
+<!--                        字符串的长度-->
+                        <prop key="kaptcha.textproducer.char.length">4</prop>
+                    </props>
+                </constructor-arg>
+            </bean>
+        </property>
+    </bean>
+
+<!--    启用spring-task 任务调度(定时任务) 的注解开发模式-->
+    <task:annotation-driven/>
+
+<!--    启用图片上传功能-->
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <property name="defaultEncoding" value="UTF-8"/>
+    </bean>
+
+<!--    登录验证拦截器-->
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <mvc:mapping path="/management/**"/>
+            <mvc:exclude-mapping path="/management/login.html"/>
+            <mvc:exclude-mapping path="/management/check_login"/>
+            <bean class="com.ctgu.reader.interceptor.LoginInterceptor"/>
+        </mvc:interceptor>
+    </mvc:interceptors>
+
+</beans>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ctgu.reader.mapper.BookMapper">
+    <update id="updateEvaluation">
+        UPDATE book SET book.evaluation_score = (
+            SELECT IFNULL(AVG(evaluation.score), 0) FROM evaluation WHERE evaluation.book_id = book.book_id AND evaluation.state = 'enable'
+        ), book.evaluation_quantity = (
+            SELECT IFNULL(COUNT(*), 0) FROM evaluation WHERE evaluation.book_id = book.book_id AND evaluation.state = 'enable'
+        )
+    </update>
+</mapper>
